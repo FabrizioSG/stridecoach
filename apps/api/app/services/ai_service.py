@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Any
 
@@ -131,4 +132,14 @@ Workout:
 - Actual average cadence: {workout.actual_avg_cadence}
 - Actual average pace: {workout.actual_avg_pace}
 - Athlete notes: {workout.notes or "None"}
+- Garmin screenshot metrics: {self._format_garmin_metrics(workout)}
 """.strip()
+
+    def _format_garmin_metrics(self, workout: Workout) -> str:
+        if not workout.garmin_screenshot_metrics:
+            return "None"
+        try:
+            metrics = json.loads(workout.garmin_screenshot_metrics)
+        except json.JSONDecodeError:
+            return workout.garmin_screenshot_metrics
+        return json.dumps(metrics, indent=2, ensure_ascii=False)

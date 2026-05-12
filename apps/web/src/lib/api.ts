@@ -1,4 +1,9 @@
-import type { DashboardSummary, TrainingPlan, Workout } from "@stridecoach/shared-types";
+import type {
+  DashboardSummary,
+  GarminScreenshotImportResponse,
+  TrainingPlan,
+  Workout,
+} from "@stridecoach/shared-types";
 
 import { supabase } from "./supabase";
 
@@ -98,4 +103,12 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
+  importGarminScreenshots: (workoutId: string, files: File[]) => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("files", file));
+    return upload<GarminScreenshotImportResponse>(
+      `/plans/workouts/${workoutId}/garmin-screenshots`,
+      formData,
+    );
+  },
 };

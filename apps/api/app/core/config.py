@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     supabase_jwt_secret: str | None = None
     openai_api_key: str | None = None
     openai_model: str = "gpt-5-mini"
+    openai_vision_model: str = "gpt-4.1-mini"
     strava_client_id: str | None = None
     strava_client_secret: str | None = None
     strava_redirect_uri: str = "http://localhost:8000/api/v1/strava/callback"

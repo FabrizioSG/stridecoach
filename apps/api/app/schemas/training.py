@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -33,6 +34,13 @@ class WorkoutRead(CamelModel):
     notes: str | None
     ai_analysis: str | None
     ai_analysis_generated_at: datetime | None
+    garmin_screenshot_metrics: str | None
+    garmin_screenshot_imported_at: datetime | None
+
+
+class GarminScreenshotImportResponse(CamelModel):
+    workout: WorkoutRead
+    metrics: dict[str, Any]
 
 
 class WorkoutUpdate(CamelModel):

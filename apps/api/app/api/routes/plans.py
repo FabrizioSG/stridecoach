@@ -1,14 +1,23 @@
-from datetime import date
+import json
+from datetime import UTC, date, datetime
+from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.training import TrainingPlan, TrainingWeek, User, Workout, WorkoutStatus
-from app.schemas.training import DashboardSummary, TrainingPlanRead, WorkoutRead, WorkoutUpdate
+from app.schemas.training import (
+    DashboardSummary,
+    GarminScreenshotImportResponse,
+    TrainingPlanRead,
+    WorkoutRead,
+    WorkoutUpdate,
+)
+from app.services.garmin_screenshot_service import GarminScreenshotService
 
 router = APIRouter(prefix="/plans", tags=["training plans"])
 
@@ -181,3 +190,60 @@ def update_workout(
     db.commit()
     db.refresh(workout)
     return workout
+
+
+@router.post(
+    "/workouts/{workout_id}/garmin-screenshots",
+    response_model=GarminScreenshotImportResponse,
+)
+async def import_garmin_screenshots(
+    workout_id: UUID,
+    files: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    workout = db.scalar(
+        select(Workout)
+        .join(Workout.week)
+        .join(TrainingWeek.plan)
+        .where(Workout.id == workout_id, TrainingPlan.user_id == current_user.id)
+    )
+    if not workout:
+        raise HTTPException(status_code=404, detail="Workout not found")
+
+    metrics = await GarminScreenshotService().extract_metrics(files)
+    apply_garmin_summary_to_workout(workout, metrics)
+    workout.garmin_screenshot_metrics = json.dumps(metrics, ensure_ascii=False)
+    workout.garmin_screenshot_imported_at = datetime.now(UTC)
+    workout.ai_analysis = None
+    workout.ai_analysis_generated_at = None
+
+    db.add(workout)
+    db.commit()
+    db.refresh(workout)
+    return {"workout": workout, "metrics": metrics}
+
+
+def apply_garmin_summary_to_workout(workout: Workout, metrics: dict[str, Any]) -> None:
+    summary = metrics.get("summary")
+    if not isinstance(summary, dict):
+        return
+
+    distance_km = summary.get("distanceKm")
+    duration_min = summary.get("durationMin")
+    avg_hr = summary.get("avgHeartRate")
+    avg_cadence = summary.get("avgCadence")
+    avg_pace = summary.get("avgPace")
+
+    if isinstance(distance_km, int | float):
+        workout.actual_distance_km = round(float(distance_km), 2)
+    if isinstance(duration_min, int | float):
+        workout.actual_duration_min = round(float(duration_min))
+    if isinstance(avg_hr, int | float):
+        workout.actual_avg_hr = round(float(avg_hr))
+    if isinstance(avg_cadence, int | float):
+        workout.actual_avg_cadence = round(float(avg_cadence))
+    if isinstance(avg_pace, str) and avg_pace.strip():
+        workout.actual_avg_pace = avg_pace.strip()
+
+    workout.status = WorkoutStatus.completed

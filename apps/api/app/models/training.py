@@ -125,6 +125,8 @@ class Workout(Base):
     notes: Mapped[str | None] = mapped_column(Text)
     ai_analysis: Mapped[str | None] = mapped_column(Text)
     ai_analysis_generated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    garmin_screenshot_metrics: Mapped[str | None] = mapped_column(Text)
+    garmin_screenshot_imported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     week: Mapped[TrainingWeek] = relationship(back_populates="workouts")
     strava_activity: Mapped["StravaActivity | None"] = relationship(back_populates="workout")

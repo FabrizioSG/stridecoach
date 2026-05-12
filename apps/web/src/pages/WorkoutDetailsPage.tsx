@@ -1,5 +1,5 @@
-import type { TrainingPlan, Workout } from "@stridecoach/shared-types";
-import { Brain, LinkIcon, NotebookPen, RefreshCw, Watch } from "lucide-react";
+import type { GarminScreenshotMetrics, TrainingPlan, Workout } from "@stridecoach/shared-types";
+import { Brain, Camera, LinkIcon, NotebookPen, RefreshCw, Upload, Watch } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useParams } from "react-router-dom";
@@ -21,6 +21,10 @@ export function WorkoutDetailsPage() {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [garminFiles, setGarminFiles] = useState<File[]>([]);
+  const [garminMetrics, setGarminMetrics] = useState<GarminScreenshotMetrics | null>(null);
+  const [garminMessage, setGarminMessage] = useState<string | null>(null);
+  const [isImportingGarmin, setIsImportingGarmin] = useState(false);
   const [actualForm, setActualForm] = useState({
     distanceKm: "",
     durationMin: "",
@@ -54,6 +58,7 @@ export function WorkoutDetailsPage() {
       avgPace: workout.actualAvgPace ?? "",
       notes: workout.notes ?? "",
     });
+    setGarminMetrics(parseGarminMetrics(workout.garminScreenshotMetrics));
   }, [workout]);
 
   async function markComplete(selected: Workout) {
@@ -156,6 +161,23 @@ export function WorkoutDetailsPage() {
     }
   }
 
+  async function importGarminScreenshots() {
+    if (!workout || garminFiles.length === 0) return;
+    setIsImportingGarmin(true);
+    setGarminMessage(null);
+    try {
+      const result = await api.importGarminScreenshots(workout.id, garminFiles);
+      replaceWorkout(result.workout);
+      setGarminMetrics(result.metrics);
+      setAnalysis(null);
+      setGarminMessage("Garmin screenshots imported. Actual workout data was updated.");
+    } catch {
+      setGarminMessage("Unable to read those screenshots. Try clearer Garmin stats screenshots.");
+    } finally {
+      setIsImportingGarmin(false);
+    }
+  }
+
   if (isLoading) return <Skeleton className="h-96" />;
   if (!workout) {
     return (
@@ -191,6 +213,51 @@ export function WorkoutDetailsPage() {
             {workout.status !== "completed" ? (
               <Button onClick={() => markComplete(workout)}>Mark workout complete</Button>
             ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Camera className="h-5 w-5 text-primary" />
+              <CardTitle>Garmin screenshots</CardTitle>
+            </div>
+            <CardDescription>
+              Upload up to 3 Garmin stats screenshots to extract richer workout data for AI coaching.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed p-6 text-center hover:bg-muted/60">
+              <Upload className="h-5 w-5 text-primary" />
+              <span className="text-sm font-medium">Choose screenshots</span>
+              <span className="text-xs text-muted-foreground">PNG, JPG, or HEIC if your browser supports it</span>
+              <input
+                className="hidden"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(event) => {
+                  const selected = Array.from(event.target.files ?? []);
+                  setGarminFiles(selected.slice(0, 3));
+                  setGarminMessage(
+                    selected.length > 3 ? "Only the first 3 screenshots will be uploaded." : null,
+                  );
+                }}
+              />
+            </label>
+            {garminFiles.length ? (
+              <div className="grid gap-2 text-sm text-muted-foreground">
+                {garminFiles.map((file) => (
+                  <p key={`${file.name}-${file.size}`}>{file.name}</p>
+                ))}
+              </div>
+            ) : null}
+            <Button onClick={importGarminScreenshots} disabled={!garminFiles.length || isImportingGarmin}>
+              <Camera className="h-4 w-4" />
+              {isImportingGarmin ? "Reading screenshots" : "Import Garmin data"}
+            </Button>
+            {garminMessage ? <p className="text-sm text-muted-foreground">{garminMessage}</p> : null}
+            <GarminMetricsPreview metrics={garminMetrics} />
           </CardContent>
         </Card>
 
@@ -351,6 +418,67 @@ function numberOrNull(value: string) {
   if (!value.trim()) return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseGarminMetrics(value: string | null): GarminScreenshotMetrics | null {
+  if (!value) return null;
+  try {
+    return JSON.parse(value) as GarminScreenshotMetrics;
+  } catch {
+    return null;
+  }
+}
+
+function GarminMetricsPreview({ metrics }: { metrics: GarminScreenshotMetrics | null }) {
+  if (!metrics) {
+    return (
+      <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+        No Garmin screenshot data imported yet.
+      </div>
+    );
+  }
+
+  const rawMetrics = metrics.rawMetrics ?? [];
+  const summaryItems = [
+    ["Distance", metrics.summary?.distanceKm ? `${metrics.summary.distanceKm} km` : null],
+    ["Duration", metrics.summary?.durationMin ? `${metrics.summary.durationMin} min` : null],
+    ["Avg pace", metrics.summary?.avgPace ?? null],
+    ["Avg HR", metrics.summary?.avgHeartRate ? `${metrics.summary.avgHeartRate} bpm` : null],
+    ["Cadence", metrics.summary?.avgCadence ? `${metrics.summary.avgCadence} spm` : null],
+  ].filter((item): item is [string, string] => Boolean(item[1]));
+
+  return (
+    <div className="grid gap-3">
+      {summaryItems.length ? (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {summaryItems.map(([label, value]) => (
+            <Detail key={label} label={label} value={value} />
+          ))}
+        </div>
+      ) : null}
+      {rawMetrics.length ? (
+        <div className="max-h-72 overflow-auto rounded-md border">
+          <div className="grid divide-y">
+            {rawMetrics.map((metric, index) => (
+              <div
+                key={`${metric.section}-${metric.label}-${index}`}
+                className="grid gap-1 px-3 py-2 text-sm sm:grid-cols-[9rem_1fr_auto]"
+              >
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                  {metric.section}
+                </span>
+                <span>{metric.label}</span>
+                <span className="font-medium text-foreground">{metric.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {metrics.notes?.length ? (
+        <p className="text-xs text-muted-foreground">{metrics.notes.join(" ")}</p>
+      ) : null}
+    </div>
+  );
 }
 
 function Detail({ label, value }: { label: string; value: string }) {

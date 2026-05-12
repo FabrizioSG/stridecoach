@@ -25,6 +25,35 @@ export interface Workout {
   notes: string | null;
   aiAnalysis: string | null;
   aiAnalysisGeneratedAt: string | null;
+  garminScreenshotMetrics: string | null;
+  garminScreenshotImportedAt: string | null;
+}
+
+export interface GarminMetric {
+  section: string;
+  label: string;
+  value: string;
+}
+
+export interface GarminScreenshotMetrics {
+  source?: "garmin_screenshots";
+  screenshotCount?: number;
+  summary?: {
+    activityType?: string | null;
+    distanceKm?: number | null;
+    durationMin?: number | null;
+    avgPace?: string | null;
+    avgHeartRate?: number | null;
+    avgCadence?: number | null;
+  };
+  sections?: Record<string, Record<string, unknown>>;
+  rawMetrics?: GarminMetric[];
+  notes?: string[];
+}
+
+export interface GarminScreenshotImportResponse {
+  workout: Workout;
+  metrics: GarminScreenshotMetrics;
 }
 
 export interface TrainingWeek {
