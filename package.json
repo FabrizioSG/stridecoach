@@ -1,0 +1,18 @@
+{
+  "name": "stridecoach",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Full-stack monorepo starter for a running training tracker and AI-assisted coaching app.",
+  "scripts": {
+    "dev": "corepack pnpm --parallel --filter @stridecoach/web --filter @stridecoach/shared-types dev",
+    "dev:web": "corepack pnpm --filter @stridecoach/web dev",
+    "build": "corepack pnpm -r build",
+    "lint": "corepack pnpm -r lint",
+    "format": "prettier --write .",
+    "typecheck": "corepack pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  },
+  "packageManager": "pnpm@9.12.3"
+}
