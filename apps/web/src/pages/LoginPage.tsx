@@ -1,12 +1,8 @@
-import { Activity, Chrome } from "lucide-react";
+import { Activity, Lock } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/contexts/AuthContext";
 
 export function LoginPage() {
-  const { isConfigured, signInWithGoogle } = useAuth();
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <div className="w-full max-w-md">
@@ -21,19 +17,20 @@ export function LoginPage() {
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>Welcome back</CardTitle>
-            <CardDescription>Continue with Google to open your training workspace.</CardDescription>
+            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-md bg-muted text-primary">
+              <Lock className="h-5 w-5" />
+            </div>
+            <CardTitle>Private beta</CardTitle>
+            <CardDescription>
+              StrideCoach is currently invite-only while we tune imports, Garmin screenshot analysis,
+              and coaching feedback.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4">
-            <Button onClick={signInWithGoogle} disabled={!isConfigured}>
-              <Chrome className="h-4 w-4" />
-              Continue with Google
-            </Button>
-            {!isConfigured ? (
-              <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
-                Supabase env vars are not configured yet, so the starter app will open in demo mode.
-              </p>
-            ) : null}
+          <CardContent>
+            <p className="rounded-md bg-muted p-4 text-sm leading-6 text-muted-foreground">
+              New signups are paused. Existing testers can continue using their active sessions, and
+              login access will reopen when the beta expands.
+            </p>
           </CardContent>
         </Card>
       </div>
