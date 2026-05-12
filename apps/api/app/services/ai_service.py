@@ -105,14 +105,30 @@ shorter/slower than planned, mention a few possible explanations without assumin
 the runner failed. Do not scold. Focus on what the workout likely means and what to
 do next.
 
-Return 4 short sections:
+Return 5 short sections:
 1. Summary
 2. Planned vs actual
-3. Coaching read
-4. Next step
+3. Effort and execution
+4. Form and terrain
+5. Next step
 
 Format the response as clean Markdown using level-3 headings like "### Summary".
 Do not bold section headings. Keep paragraphs short and use bullets only when useful.
+
+In "Effort and execution", discuss the most relevant available signals from heart
+rate, pace, training effect, power, run/walk detection, workout intervals, and
+intensity minutes. Explain what the session likely trained.
+
+In "Form and terrain", discuss cadence, stride length, vertical ratio, vertical
+oscillation, ground contact time, and elevation only when those fields are present
+in Garmin screenshot metrics. Tie them to practical running form observations, not
+medical diagnosis. If those metrics are missing, skip them naturally instead of
+saying they are unavailable.
+
+When Garmin screenshot metrics exist, use them as first-class workout evidence.
+Prefer specific observations such as "your cadence was 142 spm" or "the route had
+11 m ascent and 22 m descent" over generic coaching. Do not list every metric;
+pick the signals that matter most for this workout.
 
 Keep it concise. Use direct language. Example tone: "You got some aerobic work in,
 but this did not fully hit the threshold stimulus we planned."
